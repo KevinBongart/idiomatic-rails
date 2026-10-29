@@ -1,0 +1,29 @@
+IdiomaticRails/HandRolledPluralization:
+  Description: >-
+    Do not pick a singular or plural word by branching on a count.
+    String#pluralize does it, and knows the irregular cases.
+  Enabled: true
+  VersionAdded: '0.1'
+
+IdiomaticRails/InlineStrftime:
+  Description: >-
+    Define a date format once as a named Date::DATE_FORMATS entry and render
+    it with to_fs(:name), rather than repeating a strftime string.
+  Enabled: true
+  VersionAdded: '0.1'
+  # Where a one-off format is the honest answer: a migration, a rake task, a
+  # script. Seeds and specs are excluded because a literal there is usually
+  # fixture data rather than something a user reads.
+  Exclude:
+    - 'db/**/*'
+    - 'lib/tasks/**/*'
+    - 'script/**/*'
+    - 'spec/**/*'
+    - 'test/**/*'
+
+IdiomaticRails/ManualToSentence:
+  Description: >-
+    Do not join a list into prose with "and" by hand. Array#to_sentence
+    handles the two-item case, the Oxford comma and the locale.
+  Enabled: true
+  VersionAdded: '0.1'
