@@ -3,7 +3,7 @@
 Deterministic checks that a Rails application uses Rails, instead of
 reimplementing it.
 
-Six RuboCop cops and one cross-file dead-code check. Every rule fires on
+Seven RuboCop cops and two cross-file checks. Every rule fires on
 a **shape**, not on a smell: it can be decided by reading the syntax tree, it
 has a single obvious correction, and it is argued for below with the case it
 was extracted from.
@@ -158,6 +158,45 @@ sleep 0.5
 click_button "Save"
 expect(page).to have_content("Saved")
 ```
+
+### `IdiomaticRails/ManualNumberFormat`
+
+A quantity rounded to fixed decimals by hand.
+
+```ruby
+# bad
+"%.2f" % total
+total.round(2).to_s
+
+# good
+number_to_currency(total)
+number_with_precision(total, precision: 2)
+```
+
+The helpers carry the locale's delimiter, separator and currency unit;
+`"%.2f"` carries none of them. Only a fixed-precision float spec is reported
+— `"%d"` and `"%s"` are not formatting a quantity for a reader.
+
+## The unenforced-validation check
+
+`bundle exec idiomatic-rails-unenforced-validations` fails when a `validates`
+declaration has no matching database constraint.
+
+**The answer lives in two files**, which is why it is not a cop: a cop reads
+`validates :year, uniqueness: true` and never learns whether a unique index
+exists. This reads the models and `db/schema.rb` together.
+
+A uniqueness validation is a `SELECT` followed by an `INSERT`, and two
+requests can both run the `SELECT` before either runs the `INSERT`. The
+validation is a courtesy to the user; only the index is an invariant. The same
+holds for `presence: true` on a nullable column — the validation covers the
+one write path that runs validations, and nothing covers a migration, a
+backfill, `update_column` or `insert_all`.
+
+A unique **constraint** counts as much as a unique index; Rails dumps one as
+`t.unique_constraint`. Conditional validations (`if:`, `unless:`, `on:`) are
+skipped, because a validation that applies sometimes cannot be mirrored by a
+constraint that applies always.
 
 ## The dead-code check
 

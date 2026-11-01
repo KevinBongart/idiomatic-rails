@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "optparse"
+require "pathname"
+require "yaml"
+require_relative "../lib/idiomatic_rails"
+
+options = { root: Dir.pwd, config: ".idiomatic-rails.yml" }
+OptionParser.new do |parser|
+  parser.banner = "Usage: idiomatic-rails-unenforced-validations [options]"
+  parser.on("--root PATH") { |value| options[:root] = value }
+  parser.on("--config PATH") { |value| options[:config] = value }
+end.parse!
+
+config_path = Pathname.new(options[:root]).join(options[:config])
+config = config_path.exist? ? (YAML.load_file(config_path)["unenforced_validations"] || {}) : {}
+
+check = IdiomaticRails::UnenforcedValidation.new(root: options[:root], config: config)
+problems = check.problems
+
+if problems.empty?
+  puts "  OK  #{check.validation_count} validations, every one backed by the database"
+  exit 0
+end
+
+problems.each { |problem| puts "  #{problem}" }
+puts
+puts "A validation is a SELECT then an INSERT, and two requests can run the SELECT"
+puts "before either runs the INSERT. Only the constraint is an invariant. Add it, or"
+puts "record the pair under `unenforced_validations:` in #{options[:config]} with the reason."
+exit 1

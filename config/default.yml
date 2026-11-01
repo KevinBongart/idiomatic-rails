@@ -57,3 +57,16 @@ IdiomaticRails/SpecSleep:
   Include:
     - 'spec/**/*.rb'
     - 'test/**/*.rb'
+
+IdiomaticRails/ManualNumberFormat:
+  Description: >-
+    Format a quantity with a Rails helper, so it carries the locale's
+    delimiter, separator and unit.
+  Enabled: true
+  VersionAdded: '0.2'
+  # A fixed-width float in a filename, a migration or a script is a contract
+  # with something other than a reader.
+  Exclude:
+    - 'db/**/*'
+    - 'lib/tasks/**/*'
+    - 'script/**/*'

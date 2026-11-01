@@ -30,7 +30,7 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir["lib/**/*.rb", "exe/*", "config/*.yml", "*.md", "LICENSE.txt"]
   spec.bindir = "exe"
-  spec.executables = [ "idiomatic-rails-dead-code" ]
+  spec.executables = [ "idiomatic-rails-dead-code", "idiomatic-rails-unenforced-validations" ]
   spec.require_paths = [ "lib" ]
 
   # actionview compiles ERB templates for the reachability check, so a helper
