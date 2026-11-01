@@ -1,12 +1,15 @@
 # frozen_string_literal: true
 
 module IdiomaticRails
-  class Reachability
+  class DeadCode
     # Gathers every way one piece of source can name another.
     class Collector < Prism::Visitor
       attr_reader :calls, :constants, :symbol_arguments, :computed_dispatch
 
-      def initialize
+      # Dispatchers are injected rather than read from a constant: the
+      # application's own Rails supplies its callback macros.
+      def initialize(dispatchers: DeadCode::SYMBOL_DISPATCHERS)
+        @dispatchers = dispatchers.to_set
         @calls = []
         @constants = []
         @symbol_arguments = []
@@ -52,11 +55,23 @@ module IdiomaticRails
       def collect_argument_symbols(node)
         node.arguments&.arguments&.each do |argument|
           if argument.is_a?(Prism::SymbolNode)
-            @symbol_arguments << argument.unescaped if SYMBOL_DISPATCHERS.include?(node.name)
+            collect_dispatched_symbol(node, argument)
           elsif COMPUTED_DISPATCH.include?(node.name)
             @computed_dispatch << @path
           end
         end
+      end
+
+      def collect_dispatched_symbol(node, argument)
+        return unless @dispatchers.include?(node.name)
+
+        name = argument.unescaped
+        @symbol_arguments << name
+        # `permit(:start_time)` is what reaches `def start_time=`: mass
+        # assignment writes through the setter, and the permitted name never
+        # carries the `=`. Without this the writers an application permits
+        # read as dead, which is three of them in one model here.
+        @symbol_arguments << "#{name}=" if ATTRIBUTE_ASSIGNERS.include?(node.name)
       end
     end
   end

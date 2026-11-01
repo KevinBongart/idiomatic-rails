@@ -6,7 +6,7 @@ require "rubocop"
 # dies with `superclass mismatch for class Cop`.
 require "rubocop/rspec/support"
 require "idiomatic-rails"
-require "idiomatic_rails/reachability"
+require "idiomatic_rails/dead_code"
 
 RSpec.configure do |config|
   config.expect_with(:rspec) { |c| c.syntax = :expect }

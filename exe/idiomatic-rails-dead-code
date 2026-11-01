@@ -4,25 +4,25 @@
 require "optparse"
 require "pathname"
 require "yaml"
-require_relative "../lib/idiomatic_rails/reachability"
+require_relative "../lib/idiomatic_rails/dead_code"
 
 options = { root: Dir.pwd, config: ".idiomatic-rails.yml" }
 
 OptionParser.new do |parser|
-  parser.banner = "Usage: idiomatic-rails-reachability [options]"
+  parser.banner = "Usage: idiomatic-rails-dead-code [options]"
   parser.on("--root PATH", "Application root (default: the working directory)") { |v| options[:root] = v }
   parser.on("--config PATH", "Config file (default: .idiomatic-rails.yml)") { |v| options[:config] = v }
   parser.on("-h", "--help") { puts parser; exit 0 }
 end.parse!
 
 config_path = Pathname.new(options[:root]).join(options[:config])
-config = config_path.exist? ? (YAML.load_file(config_path) || {})["reachability"] : nil
+config = config_path.exist? ? (YAML.load_file(config_path) || {})["dead_code"] : nil
 
 begin
-  check = IdiomaticRails::Reachability.new(root: options[:root], config: config)
+  check = IdiomaticRails::DeadCode.new(root: options[:root], config: config)
   problems = check.problems
-rescue IdiomaticRails::Reachability::Error => e
-  warn "idiomatic-rails-reachability: #{e.message}"
+rescue IdiomaticRails::DeadCode::Error => e
+  warn "idiomatic-rails-dead-code: #{e.message}"
   exit 1
 end
 
@@ -34,6 +34,6 @@ end
 problems.each { |problem| puts "  #{problem}" }
 puts
 puts "Delete it, or — if something outside this repository reaches it — record it under"
-puts "`reachability:` in #{options[:config]} with the reason. An exemption that stops being"
+puts "`dead_code:` in #{options[:config]} with the reason. An exemption that stops being"
 puts "needed fails too, so the file cannot quietly fill up with names nobody rechecks."
 exit 1

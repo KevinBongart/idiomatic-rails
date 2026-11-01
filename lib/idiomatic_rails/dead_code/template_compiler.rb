@@ -3,7 +3,7 @@
 require "action_view"
 
 module IdiomaticRails
-  class Reachability
+  class DeadCode
     # Compiles an ERB template to the Ruby that Rails renders, so a helper
     # called only from a view is reachable and needs no exemption.
     module TemplateCompiler

@@ -31,7 +31,7 @@ module IdiomaticRails
   #   - dead code still called by other dead code. The cluster's entry point
   #     is reported; the rest surfaces on the next run.
   #   - anything that is not a method or a constant.
-  class Reachability
+  class DeadCode
     Finding = Struct.new(:kind, :name, :path, :line, keyword_init: true)
 
     DEFAULTS = {
@@ -42,8 +42,12 @@ module IdiomaticRails
       "protocol_methods" => %w[
         initialize == eql? hash <=> to_s to_str inspect coerce
         method_missing respond_to_missing?
-      ],
-      "routes_file" => "config/routes.rb"
+
+        included extended prepended inherited
+
+        to_param to_partial_path to_key to_model model_name persisted?
+        readonly? new_record? destroyed?
+      ]
     }.freeze
 
     # Calls that name a method with a symbol, so the symbol is a reference.
@@ -53,15 +57,28 @@ module IdiomaticRails
     # the first version of this missed a deliberately re-added dead method.
     # A dispatcher nobody listed yields a false finding rather than a silent
     # pass, which is the right direction to be wrong in.
+    # Calls that name a method with a symbol, so the symbol is a reference.
+    #
+    # A named list, and it has to be: counting *every* symbol argument makes
+    # `row[:total_minutes]` look like a call to `total_minutes`, which is how
+    # the first version of this missed a deliberately re-added dead method.
+    #
+    # Rails' own callback macros are not listed here — they come from the
+    # booted application, so the set matches the Rails in the Gemfile rather
+    # than the one this gem was written against. A hardcoded list carried
+    # `before_validation` and not `before_create`, which reported one
+    # callback in a model as live and the next as dead.
     SYMBOL_DISPATCHERS = %i[
       send public_send __send__ method respond_to? alias_method define_method
       delegate private_class_method public_class_method private_constant
-      helper_method before_action after_action around_action
-      skip_before_action rescue_from validate validates before_validation
-      after_commit after_save before_save scope
+      helper_method rescue_from validate validates scope permit
     ].freeze
 
     COMPUTED_DISPATCH = %i[send public_send __send__].freeze
+
+    # Calls whose symbol arguments name an *attribute*, so they reach the
+    # writer as well as the reader.
+    ATTRIBUTE_ASSIGNERS = %i[permit].freeze
 
     def initialize(root:, config: {})
       @root = Pathname.new(root)
@@ -148,7 +165,7 @@ module IdiomaticRails
     end
 
     def collector
-      @collector ||= Collector.new.tap do |c|
+      @collector ||= Collector.new(dispatchers: SYMBOL_DISPATCHERS + rails_facts.callbacks.to_a).tap do |c|
         ruby_files(config["reference_paths"]).each do |path|
           parse(path.read, path).accept(c.for_path(relative(path)))
         end
@@ -159,18 +176,27 @@ module IdiomaticRails
     end
 
     # Rails calls a controller action; nothing in the application does. The
-    # names are read off the routes file rather than from a rule like "every
+    # set comes from the router itself rather than from a rule like "every
     # public method of a controller", which would exempt a genuinely dead one.
-    def routed_actions
-      @routed_actions ||= begin
-        file = root.join(config["routes_file"])
-        file.exist? ? RoutesReader.call(file) : []
-      end
+    def rails_facts
+      @rails_facts ||=
+        if root.join("config/routes.rb").exist?
+          RailsFacts.call(root)
+        else
+          RailsFacts::Facts.new(routes: Set.new, callbacks: Set.new)
+        end
     end
 
+    def routed_actions = rails_facts.routes
+
+    # Matched as controller#action, not by action name. Matching the name
+    # alone exempts a dead `show` because some other controller has a routed
+    # `show`, and three controllers defining `create` is ordinary.
     def routed_action?(definition)
-      definition.path.match?(%r{\Aapp/controllers/.*_controller\.rb\z}) &&
-        routed_actions.include?(definition.name)
+      match = definition.path.match(%r{\Aapp/controllers/(?<controller>.+)_controller\.rb\z})
+      return false unless match
+
+      routed_actions.include?("#{match[:controller]}##{definition.name}")
     end
 
     def ruby_files(paths)
@@ -207,6 +233,6 @@ module IdiomaticRails
   end
 end
 
-require_relative "reachability/collector"
-require_relative "reachability/routes_reader"
-require_relative "reachability/template_compiler"
+require_relative "dead_code/collector"
+require_relative "dead_code/rails_facts"
+require_relative "dead_code/template_compiler"

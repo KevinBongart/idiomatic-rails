@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Stands in for a real Rails boot. The reader shells out to `bin/rails runner`
+# and reads prefixed facts off stdout, so the fixture produces the same shape
+# — which keeps the Open3 path under test rather than stubbed away.
+abort "unexpected: #{ARGV.first}" unless ARGV.first == "runner"
+
+puts "ROUTE things#index"
+%w[before_validation before_save before_create after_create_commit before_destroy].each do |name|
+  puts "CALLBACK #{name}"
+end

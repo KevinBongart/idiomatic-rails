@@ -24,3 +24,17 @@ class Thing
     :alive
   end
 end
+
+class PermittedThing
+  def permitted_writer=(value)
+    @permitted_writer = value
+  end
+end
+
+class CallbackThing
+  before_validation :validated_by_callback
+  before_create :created_by_callback
+
+  def validated_by_callback = nil
+  def created_by_callback = nil
+end

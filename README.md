@@ -3,7 +3,7 @@
 Deterministic checks that a Rails application uses Rails, instead of
 reimplementing it.
 
-Three RuboCop cops and one cross-file reachability check. Every rule fires on
+Three RuboCop cops and one cross-file dead-code check. Every rule fires on
 a **shape**, not on a smell: it can be decided by reading the syntax tree, it
 has a single obvious correction, and it is argued for below with the case it
 was extracted from.
@@ -26,10 +26,10 @@ plugins:
   - idiomatic-rails
 ```
 
-And, for the reachability check, in CI:
+And, for the dead-code check, in CI:
 
 ```bash
-bundle exec idiomatic-rails-reachability
+bundle exec idiomatic-rails-dead-code
 ```
 
 ## The cops
@@ -102,9 +102,9 @@ discovered one bug at a time.
 Only a separator containing the standalone word "and" is reported.
 `join(", ")` is a delimiter, and a delimiter is not prose.
 
-## The reachability check
+## The dead-code check
 
-`bundle exec idiomatic-rails-reachability` fails when a method or constant
+`bundle exec idiomatic-rails-dead-code` fails when a method or constant
 defined under `app/` or `lib/` is reached from nowhere but your tests.
 
 **The signal is deliberately not coverage.** A dead method keeps its spec, so
@@ -130,20 +130,32 @@ Two cases abort or fail rather than guess:
 - **A name computed at runtime.** `send(route_helper)` can reach anything, so
   each such call site must be recorded with what it actually targets. A new
   one fails the run.
-- **A bare `resources :things` in `routes.rb`**, which draws seven actions
-  while naming none. Assuming the REST set would quietly exempt a dead action
-  with a standard name, so the reader raises instead.
+- **An application that will not boot.** Routed actions and callback macros
+  are read from the running application, so a failed boot raises. Treating an
+  unreadable router as "nothing is routed" would report every action as dead.
 
-Routed actions are otherwise read off `config/routes.rb`, rather than from a
-rule like "every public method of a controller" — which would exempt a
-genuinely dead one.
+### It asks Rails rather than guessing
+
+Two facts come from the booted application, on one `bin/rails runner` call
+that needs no database:
+
+- **Which actions are routed**, from `Rails.application.routes.routes`.
+  Parsing `config/routes.rb` cannot keep up with the DSL — `patch :publish,
+  on: :member`, `member do`, concerns, mounted engines — and every spelling a
+  reader misses reports a live action as dead. The expanded table also
+  carries the controller, so a dead `show` is not exempted because a
+  *different* controller routes a `show`.
+- **Which macros name a method with a symbol**, from
+  `ActiveRecord::Callbacks::CALLBACKS` and `ActiveRecord::Transactions::ACTIONS`.
+  A hardcoded list had `before_validation` and not `before_create`, so one
+  callback in a model was understood and the next was reported dead.
 
 ### Configuration
 
 Optional, in `.idiomatic-rails.yml` at the application root:
 
 ```yaml
-reachability:
+dead_code:
   definition_paths: [app, lib]
   reference_paths: [app, lib, config, bin, Rakefile]
   template_paths: [app/views]
@@ -183,7 +195,7 @@ methods. Measured there:
 | `debride app lib` | 35 | 3 |
 | `debride --rails` | 32 | 3 |
 | `debride --rails` with pre-compiled views | 31 | 3 |
-| `idiomatic-rails-reachability` | 3 | 3 |
+| `idiomatic-rails-dead-code` | 3 | 3 |
 
 The noise is structural: debride does not parse ERB, and a Rails app's
 helpers and presenters are called almost entirely from templates. Handing it
