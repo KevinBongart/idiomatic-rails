@@ -3,7 +3,7 @@
 Deterministic checks that a Rails application uses Rails, instead of
 reimplementing it.
 
-Three RuboCop cops and one cross-file dead-code check. Every rule fires on
+Six RuboCop cops and one cross-file dead-code check. Every rule fires on
 a **shape**, not on a smell: it can be decided by reading the syntax tree, it
 has a single obvious correction, and it is argued for below with the case it
 was extracted from.
@@ -101,6 +101,63 @@ discovered one bug at a time.
 
 Only a separator containing the standalone word "and" is reported.
 `join(", ")` is a delimiter, and a delimiter is not prose.
+
+### `IdiomaticRails/SpecFixedClockDrift`
+
+An example that pins a clock, and then builds data from the real one.
+
+```ruby
+# bad
+let(:now) { Time.zone.local(2026, 9, 1, 18) }
+create_event(created_at: 1.month.ago)
+
+# good
+create_event(created_at: now - 1.month)
+```
+
+The two clocks agree for most of the year and then stop. The example this was
+extracted from pinned `now` to 1 September and dated its "previous month"
+fixture with `1.month.ago`; from 1 October the real clock's answer landed
+*inside* the pinned month, both fixtures counted, and it failed every run
+until November with nobody having touched the code. A second example in the
+same file carried the same bug with `1.year.ago` and would have waited until
+2027.
+
+`travel_to` is not treated as a pin: it moves the real clock, so a relative
+helper underneath it is consistent.
+
+### `IdiomaticRails/SpecDaylightSavingAbbreviation`
+
+A time-zone abbreviation that flips, asserted as a literal.
+
+```ruby
+# bad
+expect(page).to have_content("7:00 PM–10:00 PM (CEST)")
+```
+
+Europe moved from CEST to CET at 03:00 on the last Sunday of October. Three
+spec files asserted `(CEST)` against an event the factory dated at
+`Date.current + 7.days`; two went red that morning and would have stayed red
+until late March.
+
+Only abbreviations that flip are reported — `UTC` and `GMT` do not observe
+daylight saving, so a literal one is stable.
+
+### `IdiomaticRails/SpecSleep`
+
+A fixed sleep standing in for a synchronisation point. Capybara's matchers
+already wait; a `sleep` is slower than the wait it replaces on a fast machine
+and shorter than it on a slow one.
+
+```ruby
+# bad
+click_button "Save"
+sleep 0.5
+
+# good
+click_button "Save"
+expect(page).to have_content("Saved")
+```
 
 ## The dead-code check
 

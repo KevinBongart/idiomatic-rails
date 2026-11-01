@@ -27,3 +27,33 @@ IdiomaticRails/ManualToSentence:
     handles the two-item case, the Oxford comma and the locale.
   Enabled: true
   VersionAdded: '0.1'
+
+IdiomaticRails/SpecFixedClockDrift:
+  Description: >-
+    An example that pins a clock must offset from it, not from the real one.
+    Two clocks agree for most of the year and then stop.
+  Enabled: true
+  VersionAdded: '0.2'
+  Include:
+    - 'spec/**/*_spec.rb'
+    - 'test/**/*_test.rb'
+
+IdiomaticRails/SpecDaylightSavingAbbreviation:
+  Description: >-
+    A time-zone abbreviation that flips with daylight saving, asserted as a
+    literal, is only correct for part of the year.
+  Enabled: true
+  VersionAdded: '0.2'
+  Include:
+    - 'spec/**/*_spec.rb'
+    - 'test/**/*_test.rb'
+
+IdiomaticRails/SpecSleep:
+  Description: >-
+    Synchronise on the state that makes the next step possible, rather than
+    on a fixed duration.
+  Enabled: true
+  VersionAdded: '0.2'
+  Include:
+    - 'spec/**/*.rb'
+    - 'test/**/*.rb'

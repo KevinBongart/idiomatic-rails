@@ -38,3 +38,6 @@ end
 require_relative "../rubocop/cop/idiomatic_rails/hand_rolled_pluralization"
 require_relative "../rubocop/cop/idiomatic_rails/inline_strftime"
 require_relative "../rubocop/cop/idiomatic_rails/manual_to_sentence"
+require_relative "../rubocop/cop/idiomatic_rails/spec_fixed_clock_drift"
+require_relative "../rubocop/cop/idiomatic_rails/spec_daylight_saving_abbreviation"
+require_relative "../rubocop/cop/idiomatic_rails/spec_sleep"
