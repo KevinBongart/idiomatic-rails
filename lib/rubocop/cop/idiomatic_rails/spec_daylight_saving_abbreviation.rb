@@ -42,7 +42,10 @@ module RuboCop
         def on_str(node)
           return unless node.loc.respond_to?(:begin)
 
-          match = node.value.match(PATTERN)
+          text = ScannableText.scannable(node.value)
+          return unless text
+
+          match = text.match(PATTERN)
           return unless match
 
           add_offense(node, message: format(MSG, abbreviation: match[1]))
