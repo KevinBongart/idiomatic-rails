@@ -24,6 +24,25 @@ RSpec.describe IdiomaticRails::DeadCode do
   end
 
   describe "what it must not report" do
+    # Rails sends these by name exactly as it sends a positional callback
+    # symbol. Every one of them was an entry in a hand-maintained exemption
+    # list across four applications before the collector read option values.
+    %w[became_spam? cache_disabled? password_required?].each do |name|
+      it "leaves #{name} alone — named by a callback's condition" do
+        expect(problems).not_to include(a_string_matching(/\b#{name}/))
+      end
+    end
+
+    it "leaves a rescue_from handler alone" do
+      expect(problems).not_to include(a_string_matching(/lifecycle_refused/))
+    end
+
+    %w[rate_limit_client refuse_request].each do |name|
+      it "leaves #{name} alone — named by rate_limit" do
+        expect(problems).not_to include(a_string_matching(/\b#{name}/))
+      end
+    end
+
     it "leaves a method reached from a sibling class alone" do
       expect(problems).not_to include(a_string_matching(/reached_from_a_sibling/))
     end

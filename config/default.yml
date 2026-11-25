@@ -21,6 +21,14 @@ IdiomaticRails/InlineStrftime:
     - 'spec/**/*'
     - 'test/**/*'
 
+IdiomaticRails/DateFormatWithoutExample:
+  Description: >-
+    A named date format should carry an example of what it renders. The
+    name says what the format is for; strftime does not say what it looks
+    like.
+  Enabled: true
+  VersionAdded: '0.3'
+
 IdiomaticRails/ManualToSentence:
   Description: >-
     Do not join a list into prose with "and" by hand. Array#to_sentence

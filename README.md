@@ -3,7 +3,7 @@
 Deterministic checks that a Rails application uses Rails, instead of
 reimplementing it.
 
-Seven RuboCop cops and two cross-file checks. Every rule fires on
+Eight RuboCop cops and two cross-file checks. Every rule fires on
 a **shape**, not on a smell: it can be decided by reading the syntax tree, it
 has a single obvious correction, and it is argued for below with the case it
 was extracted from.
@@ -81,6 +81,58 @@ Only a literal is reported: `date.strftime(format)` passes, because the
 format is already a value somebody named. The default config excludes
 migrations, rake tasks, scripts and specs, where a one-off is usually the
 honest answer.
+
+### `IdiomaticRails/DateFormatWithoutExample`
+
+A named date format defined without an example of what it renders.
+
+```ruby
+# bad
+Time::DATE_FORMATS[:month_and_day] = "%B %-d"
+
+# good
+# "November 5"
+Time::DATE_FORMATS[:month_and_day] = "%B %-d"
+```
+
+This is the bill for the cop above. `InlineStrftime` moves the format out of
+the view and into a name, and `to_fs(:month_and_day)` now says what the
+format is *for* while no longer saying what it looks like. The initializer
+becomes the only place that answer lives, and there it is written in
+strftime — which almost nobody reads fluently. `%-d` against `%d`, `%-I`
+against `%I`, `%e` against `%d`: each pair differs by a space or a zero, and
+telling them apart means running the thing.
+
+So the example is not decoration. It is the only form of the answer a reader
+can check at a glance, and it belongs beside the definition because that is
+where the person adding the next format will look.
+
+The cop requires a *quoted* example — on the line above, or trailing — not a
+particular one. Quoted rather than any comment at all, because a group
+heading is a comment:
+
+```ruby
+# Admin dashboard
+Time::DATE_FORMATS[:month_and_day] = "%B %-d"
+```
+
+and accepting that exempts the first format under every heading, silently.
+A heading says what a group is; it never says what a format renders.
+
+Which moment makes a format legible is a judgement, so the autocorrection
+offers one rather than insisting on it:
+
+```
+$ rubocop -a config/initializers/date_formats.rb
+```
+
+The moment it offers is **22:04 on 5 November 1955** — the day Doc Brown
+slips, hits his head and comes to with the flux capacitor, at the minute the
+lightning hits the clock tower. Fixed rather than `Time.now`, because an
+example that changes under you is not an example and because the cop has to
+reach the same verdict on every run. It is also chosen to be *legible*: the
+day is a single digit, so `%-d` and `%d` differ; the hour is past noon, so
+`%H` and `%I` differ. An example rendered at 09:05 would hide both.
 
 ### `IdiomaticRails/ManualToSentence`
 
@@ -245,6 +297,25 @@ that needs no database:
   `ActiveRecord::Callbacks::CALLBACKS` and `ActiveRecord::Transactions::ACTIONS`.
   A hardcoded list had `before_validation` and not `before_create`, so one
   callback in a model was understood and the next was reported dead.
+
+A symbol reaches a method whether it is passed positionally or as an option
+value, so both are read:
+
+```ruby
+before_save :sync, if: :became_spam?   # reaches sync *and* became_spam?
+rescue_from Refused, with: :refused    # reaches refused
+```
+
+`if:`, `unless:`, `with:` and `by:` are the option keys Rails sends to the
+object, and they are named for the reason the dispatcher list is named:
+`dependent: :destroy` and `on: :create` are symbols in option values too,
+and neither names a method. Nested options are read as well, because
+`validates :password, confirmation: { if: :password_required? }` puts the
+condition one level in.
+
+Before this, each of those was an exemption somebody had to write and keep —
+across four applications, the most common `reason:` was a restatement of the
+macro that the scan could have read itself.
 
 ### Configuration
 

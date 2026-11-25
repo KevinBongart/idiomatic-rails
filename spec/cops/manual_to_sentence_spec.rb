@@ -35,4 +35,12 @@ RSpec.describe RuboCop::Cop::IdiomaticRails::ManualToSentence, :config do
   it "accepts join with no argument" do
     expect_no_offenses("names.join")
   end
+  # A string literal is bytes, not necessarily text. A regexp against one
+  # that is not valid UTF-8 raises, and a cop that raises fails the run while
+  # reporting nothing to fix.
+  it "ignores a binary separator rather than dying on it" do
+    expect_no_offenses(<<~'RUBY')
+      parts.join("\xFF")
+    RUBY
+  end
 end

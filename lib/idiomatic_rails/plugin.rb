@@ -35,8 +35,10 @@ module IdiomaticRails
   end
 end
 
+require_relative "../rubocop/cop/idiomatic_rails/scannable_text"
 require_relative "../rubocop/cop/idiomatic_rails/hand_rolled_pluralization"
 require_relative "../rubocop/cop/idiomatic_rails/inline_strftime"
+require_relative "../rubocop/cop/idiomatic_rails/date_format_without_example"
 require_relative "../rubocop/cop/idiomatic_rails/manual_to_sentence"
 require_relative "../rubocop/cop/idiomatic_rails/manual_number_format"
 require_relative "../rubocop/cop/idiomatic_rails/spec_fixed_clock_drift"

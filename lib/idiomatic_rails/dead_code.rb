@@ -71,10 +71,24 @@ module IdiomaticRails
     SYMBOL_DISPATCHERS = %i[
       send public_send __send__ method respond_to? alias_method define_method
       delegate private_class_method public_class_method private_constant
-      helper_method rescue_from validate validates scope permit
+      helper_method rescue_from validate validates scope permit rate_limit
     ].freeze
 
     COMPUTED_DISPATCH = %i[send public_send __send__].freeze
+
+    # Option keys whose symbol value Rails *sends to the object*, so the
+    # symbol is a reference exactly as a positional one is.
+    #
+    # `before_save :sync, if: :became_spam?` reaches `became_spam?` by the
+    # same mechanism it reaches `sync`; only the spelling differs. Reading
+    # one and not the other is what filled four applications' exemption
+    # lists with entries whose stated reason was "the callback calls it" —
+    # a hand-maintained list of things the scan could have derived.
+    #
+    # Named, for the reason SYMBOL_DISPATCHERS is named: `dependent: :destroy`
+    # and `on: :create` are symbols in option values too, and neither names
+    # a method on the model.
+    METHOD_NAMING_OPTIONS = %i[if unless with by].freeze
 
     # Calls whose symbol arguments name an *attribute*, so they reach the
     # writer as well as the reader.

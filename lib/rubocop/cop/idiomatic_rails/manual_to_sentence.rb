@@ -34,7 +34,8 @@ module RuboCop
 
         def on_send(node)
           join_with_separator(node) do |separator|
-            next unless separator.value.match?(/\band\b/i)
+            text = ScannableText.scannable(separator.value)
+            next unless text&.match?(/\band\b/i)
 
             add_offense(node, message: format(MSG, separator: separator.source))
           end

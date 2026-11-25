@@ -71,4 +71,12 @@ RSpec.describe RuboCop::Cop::IdiomaticRails::HandRolledPluralization, :config do
       RUBY
     end
   end
+  # A string literal is bytes, not necessarily text. A regexp against one
+  # that is not valid UTF-8 raises, and a cop that raises fails the run while
+  # reporting nothing to fix.
+  it "ignores a binary branch rather than dying on it" do
+    expect_no_offenses(<<~'RUBY')
+      count == 1 ? "\xFF" : "\xFEs"
+    RUBY
+  end
 end

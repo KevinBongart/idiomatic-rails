@@ -54,12 +54,43 @@ module IdiomaticRails
 
       def collect_argument_symbols(node)
         node.arguments&.arguments&.each do |argument|
-          if argument.is_a?(Prism::SymbolNode)
+          case argument
+          when Prism::SymbolNode
             collect_dispatched_symbol(node, argument)
-          elsif COMPUTED_DISPATCH.include?(node.name)
-            @computed_dispatch << @path
+          when Prism::KeywordHashNode, Prism::HashNode
+            collect_option_symbols(node, argument)
+          else
+            @computed_dispatch << @path if COMPUTED_DISPATCH.include?(node.name)
           end
         end
+      end
+
+      # `before_save :sync, if: :became_spam?` names two methods, not one.
+      # The second lives in an option value, and Rails sends it just the same.
+      #
+      # Nested because the option can be one level in:
+      # `validates :password, confirmation: { if: :password_required? }`
+      # puts the condition inside the validator's own options hash.
+      def collect_option_symbols(node, hash)
+        return unless @dispatchers.include?(node.name)
+
+        hash.elements.each do |element|
+          next unless element.is_a?(Prism::AssocNode)
+
+          value = element.value
+          case value
+          when Prism::KeywordHashNode, Prism::HashNode
+            collect_option_symbols(node, value)
+          when Prism::SymbolNode
+            next unless option_names_a_method?(element.key)
+
+            @symbol_arguments << value.unescaped
+          end
+        end
+      end
+
+      def option_names_a_method?(key)
+        key.is_a?(Prism::SymbolNode) && METHOD_NAMING_OPTIONS.include?(key.unescaped.to_sym)
       end
 
       def collect_dispatched_symbol(node, argument)

@@ -96,7 +96,7 @@ module RuboCop
             when :dstr then node.children.select(&:str_type?).map(&:value).join
             end
 
-          text&.scan(/[A-Za-z]+/)&.last
+          ScannableText.scannable(text)&.scan(/[A-Za-z]+/)&.last
         end
       end
     end
