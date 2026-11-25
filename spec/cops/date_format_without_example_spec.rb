@@ -108,4 +108,28 @@ RSpec.describe RuboCop::Cop::IdiomaticRails::DateFormatWithoutExample, :config d
       Time::DATE_FORMATS[:month_and_day] = "%B %-d"
     RUBY
   end
+
+  # The example is not always the last thing said about a format. Reading
+  # only the line above calls this undocumented, which is both wrong and an
+  # argument for writing less.
+  it "accepts an example anywhere in the comment block above" do
+    expect_no_offenses(<<~RUBY)
+      # "November 25, 2026 at 9:30:15 AM EST"
+      # Seconds and the zone are both load-bearing: this is the admin
+      # table's title text, where two rows can share a minute.
+      Time::DATE_FORMATS[:admin_timestamp] = "%B %-d, %Y at %-I:%M:%S %p %Z"
+    RUBY
+  end
+
+  # Stopping at the first non-comment line is what keeps one format from
+  # borrowing the example belonging to the one above it.
+  it "does not let a format borrow the example above a blank line" do
+    expect_offense(<<~RUBY)
+      # "November 5"
+      Time::DATE_FORMATS[:documented] = "%B %-d"
+
+      Time::DATE_FORMATS[:undocumented] = "%B %Y"
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Name the format and show it: add an example of what "%B %Y" renders.
+    RUBY
+  end
 end

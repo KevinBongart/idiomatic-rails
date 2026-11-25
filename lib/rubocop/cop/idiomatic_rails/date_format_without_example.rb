@@ -55,6 +55,16 @@ module RuboCop
           (send (const (const nil? {:Date :Time}) :DATE_FORMATS) :[]= _ $str)
         PATTERN
 
+        # The memo below holds comment positions, which every autocorrection
+        # pass changes. RuboCop reuses the cop instance across passes, so
+        # without this the second pass reads the first pass's comments,
+        # decides the format is still undocumented, and inserts the example
+        # again — an infinite correction loop.
+        def on_new_investigation
+          @comments_by_line = nil
+          super
+        end
+
         def on_send(node)
           date_format_assignment(node) do |format|
             next if documented?(node)
@@ -67,8 +77,8 @@ module RuboCop
 
         private
 
-        # The example is a *quoted* rendering, on the line above or trailing
-        # on the same line.
+        # The example is a *quoted* rendering, somewhere in the comment block
+        # immediately above the definition, or trailing on the same line.
         #
         # Requiring the quotes rather than accepting any comment is what the
         # first version of this got wrong. A group heading is a comment:
@@ -79,15 +89,36 @@ module RuboCop
         # and accepting it exempted the first format under every heading —
         # silently, and in the one initializer this cop was written for. A
         # heading says what a group is; it never says what a format renders.
+        #
+        # The whole block rather than one line, because the example is not
+        # always the last thing said about a format:
+        #
+        #   # "November 25, 2026 at 9:30:15 AM EST"
+        #   # Seconds and the zone are both load-bearing: two rows can
+        #   # share a minute.
+        #   Time::DATE_FORMATS[:admin_timestamp] = "..."
+        #
+        # Reading only the line above calls that undocumented, which is both
+        # wrong and an argument for writing less.
         EXAMPLE = /["'][^"']*["']/
 
         def documented?(node)
           line = node.loc.line
 
-          processed_source.comments.any? do |comment|
-            (comment.loc.line == line || comment.loc.line == line - 1) &&
-              comment.text.match?(EXAMPLE)
-          end
+          comment_block_above(line).any? { |text| text.match?(EXAMPLE) } ||
+            comments_by_line[line]&.match?(EXAMPLE) || false
+        end
+
+        # Contiguous comment lines running upward from just above the
+        # definition. Stops at the first line that is not a comment, so a
+        # format never borrows the example belonging to the one above it.
+        def comment_block_above(line)
+          by_line = comments_by_line
+          (1...line).reverse_each.take_while { |l| by_line.key?(l) }.map { |l| by_line.fetch(l) }
+        end
+
+        def comments_by_line
+          @comments_by_line ||= processed_source.comments.to_h { |c| [ c.loc.line, c.text ] }
         end
 
         def example_comment(format)

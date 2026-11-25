@@ -107,8 +107,8 @@ So the example is not decoration. It is the only form of the answer a reader
 can check at a glance, and it belongs beside the definition because that is
 where the person adding the next format will look.
 
-The cop requires a *quoted* example — on the line above, or trailing — not a
-particular one. Quoted rather than any comment at all, because a group
+The cop requires a *quoted* example — anywhere in the comment block directly
+above, or trailing on the same line — not a particular one. Quoted rather than any comment at all, because a group
 heading is a comment:
 
 ```ruby

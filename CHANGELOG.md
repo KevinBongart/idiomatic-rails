@@ -24,8 +24,9 @@
 ### Added
 
 - `IdiomaticRails/DateFormatWithoutExample`: a named date format should
-  carry an example of what it renders. Autocorrects by rendering the format
-  at 22:04 on 5 November 1955.
+  carry an example of what it renders — a quoted one, anywhere in the
+  comment block directly above or trailing on the same line. Autocorrects
+  by rendering the format at 22:04 on 5 November 1955.
 
 ## 0.1.0
 
