@@ -84,4 +84,28 @@ RSpec.describe RuboCop::Cop::IdiomaticRails::DateFormatWithoutExample, :config d
       Time::DATE_FORMATS[:computed] = build_format
     RUBY
   end
+
+  # The first version accepted any comment, which meant a group heading
+  # exempted the format under it — silently, in the very initializer this
+  # was written for.
+  it "does not accept a group heading as an example" do
+    expect_offense(<<~RUBY)
+      # Admin dashboard
+      Time::DATE_FORMATS[:month_and_day] = "%B %-d"
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Name the format and show it: add an example of what "%B %-d" renders.
+    RUBY
+
+    expect_correction(<<~RUBY)
+      # Admin dashboard
+      # "November 5"
+      Time::DATE_FORMATS[:month_and_day] = "%B %-d"
+    RUBY
+  end
+
+  it "accepts a single-quoted example" do
+    expect_no_offenses(<<~RUBY)
+      # 'November 5'
+      Time::DATE_FORMATS[:month_and_day] = "%B %-d"
+    RUBY
+  end
 end

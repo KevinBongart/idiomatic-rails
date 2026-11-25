@@ -107,9 +107,20 @@ So the example is not decoration. It is the only form of the answer a reader
 can check at a glance, and it belongs beside the definition because that is
 where the person adding the next format will look.
 
-The cop requires *a* comment — on the line above, or trailing — not a
-particular one. Which moment makes a format legible is a judgement, so the
-autocorrection offers one rather than insisting on it:
+The cop requires a *quoted* example — on the line above, or trailing — not a
+particular one. Quoted rather than any comment at all, because a group
+heading is a comment:
+
+```ruby
+# Admin dashboard
+Time::DATE_FORMATS[:month_and_day] = "%B %-d"
+```
+
+and accepting that exempts the first format under every heading, silently.
+A heading says what a group is; it never says what a format renders.
+
+Which moment makes a format legible is a judgement, so the autocorrection
+offers one rather than insisting on it:
 
 ```
 $ rubocop -a config/initializers/date_formats.rb

@@ -25,9 +25,9 @@ module RuboCop
       # reader can check at a glance, and it belongs next to the definition
       # because that is where someone adding the next format will look.
       #
-      # The cop requires *a* comment, not a particular one. What the example
-      # should say is a judgement — which moment makes the format legible —
-      # and the autocorrection offers one rather than insisting on it.
+      # The cop requires a quoted example, not a particular one. Which
+      # moment makes a format legible is a judgement, so the autocorrection
+      # offers one rather than insisting on it.
       class DateFormatWithoutExample < Base
         extend AutoCorrector
 
@@ -67,15 +67,27 @@ module RuboCop
 
         private
 
-        # A comment on the line above, or trailing on the same line. Reading
-        # the whole contiguous block above would be stricter and no more
-        # useful: one comment line is enough to carry one example, and a
-        # heading like `# Admin dashboard` sitting above a group is a comment
-        # a reader still has to replace with something specific.
+        # The example is a *quoted* rendering, on the line above or trailing
+        # on the same line.
+        #
+        # Requiring the quotes rather than accepting any comment is what the
+        # first version of this got wrong. A group heading is a comment:
+        #
+        #   # Admin dashboard
+        #   Time::DATE_FORMATS[:month_and_day] = "%B %-d"
+        #
+        # and accepting it exempted the first format under every heading —
+        # silently, and in the one initializer this cop was written for. A
+        # heading says what a group is; it never says what a format renders.
+        EXAMPLE = /["'][^"']*["']/
+
         def documented?(node)
           line = node.loc.line
-          comments = processed_source.comments
-          comments.any? { |comment| comment.loc.line == line || comment.loc.line == line - 1 }
+
+          processed_source.comments.any? do |comment|
+            (comment.loc.line == line || comment.loc.line == line - 1) &&
+              comment.text.match?(EXAMPLE)
+          end
         end
 
         def example_comment(format)
